@@ -1,1 +1,2 @@
-# dropwizard-google-pubsub
+# dropwizard-gcp
+
