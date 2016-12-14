@@ -1,0 +1,23 @@
+
+allprojects {
+    group = 'io.github.fabito.dropwizard'
+    version = '0.1'
+}
+
+subprojects {
+
+    buildscript {
+        repositories {
+            jcenter()
+        }
+    }
+
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    project.ext {
+        dropwizardVersion = '1.0.5'
+    }
+}

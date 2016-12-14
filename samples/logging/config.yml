@@ -1,0 +1,8 @@
+logging:
+  level: INFO
+  loggers:
+    io.github.fabito: DEBUG
+  appenders:
+  - type: GKEConsole
+    timeZone: UTC
+    target: stdout

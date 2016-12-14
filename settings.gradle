@@ -1,0 +1,3 @@
+rootProject.name = 'dropwizard-gcp'
+
+include 'dropwizard-gke-logging', 'samples:logging'
