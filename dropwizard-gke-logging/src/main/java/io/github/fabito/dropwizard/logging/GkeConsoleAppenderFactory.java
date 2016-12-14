@@ -6,12 +6,12 @@ import ch.qos.logback.contrib.jackson.JacksonJsonFormatter;
 import ch.qos.logback.contrib.json.classic.JsonLayout;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.Layout;
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import ch.qos.logback.core.spi.DeferredProcessingAware;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.dropwizard.logging.ConsoleAppenderFactory;
 import io.dropwizard.logging.async.AsyncAppenderFactory;
-import io.dropwizard.logging.filter.FilterFactory;
 import io.dropwizard.logging.filter.LevelFilterFactory;
 import io.dropwizard.logging.layout.LayoutFactory;
 
@@ -29,25 +29,23 @@ public class GkeConsoleAppenderFactory<E extends DeferredProcessingAware> extend
 
     @Override
     public Appender<E> build(LoggerContext context, String applicationName, LayoutFactory<E> layoutFactory, LevelFilterFactory<E> levelFilterFactory, AsyncAppenderFactory<E> asyncAppenderFactory) {
-        ConsoleAppender appender = new ConsoleAppender();
+        final ConsoleAppender<E> appender = new ConsoleAppender<>();
         appender.setName("gke-console");
         appender.setContext(context);
         appender.setTarget(getTarget().get());
 
-        LayoutWrappingEncoder layoutEncoder = new LayoutWrappingEncoder();
+        final LayoutWrappingEncoder<E> layoutEncoder = new LayoutWrappingEncoder<>();
         JsonLayout jsonLayout = new StackdriverLoggingJsonLayout(context);
-        jsonLayout.start();
+        layoutEncoder.setLayout((Layout<E>) jsonLayout);
 
-        layoutEncoder.setLayout(jsonLayout);
         appender.setEncoder(layoutEncoder);
-        appender.addFilter(levelFilterFactory.build(this.threshold));
+        appender.addFilter(levelFilterFactory.build(getThreshold()));
 
-        for(FilterFactory ff : this.getFilterFactories()) {
-            appender.addFilter(ff.build());
-        }
+        getFilterFactories().stream().forEach(f -> appender.addFilter(f.build()));
 
         appender.start();
-        return this.wrapAsync(appender, asyncAppenderFactory);
+
+        return wrapAsync(appender, asyncAppenderFactory);
     }
 
 

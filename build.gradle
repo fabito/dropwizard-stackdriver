@@ -6,17 +6,18 @@ allprojects {
 
 subprojects {
 
-    apply plugin: 'java'
+    buildscript {
+        repositories {
+            jcenter()
+        }
+    }
 
     repositories {
         mavenCentral()
+        jcenter()
     }
 
     project.ext {
         dropwizardVersion = '1.0.5'
-    }
-
-    dependencies {
-        compile "io.dropwizard:dropwizard-logging:${dropwizardVersion}"
     }
 }

@@ -15,7 +15,6 @@ logging:
   - type: GKEConsole
     timeZone: UTC
     target: stdout
-    logFormat: "%d [%t] %level %logger{20} - %msg%n"
 ```
 
 #### TODO:
