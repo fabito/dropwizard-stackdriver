@@ -18,15 +18,13 @@ dependencies {
     compile project(':dropwizard-gke-logging')
     compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
     compile "io.dropwizard:dropwizard-core:${dropwizardVersion}"
+    compile "io.dropwizard:dropwizard-client:${dropwizardVersion}"
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8', version: '0.9.0-1'
-
-    compile 'ru.vyarus:dropwizard-guicey:4.0.1'
 
     compile group: 'com.google.cloud.trace', name: 'trace-grpc-api-service', version: cloudTrace
     compile group: 'com.google.cloud.trace', name: 'core', version: cloudTrace
     compile group: 'com.google.cloud.trace', name: 'annotation', version: cloudTrace
     compile group: 'com.google.cloud.trace', name:'guice-annotation', version: cloudTrace
-    compile group: 'com.google.cloud.trace', name:'guice-servlet', version: cloudTrace
 
     compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.4.0'
 
