@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class EchoResourceTest {
 
-
     @ClassRule
     public static final DropwizardAppRule<SampleConfiguration> RULE =
             new DropwizardAppRule<>(SampleApplication.class, ResourceHelpers.resourceFilePath("config.yml"));
@@ -40,7 +39,7 @@ public class EchoResourceTest {
     @Test
     public void get() throws Exception {
         HttpResponse response = httpClient
-                .execute(echoRequest("teste"));
+                .execute(echoRequest(UUID.randomUUID().toString()));
         assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
     }
 
