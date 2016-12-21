@@ -26,7 +26,7 @@ public class EchoResource {
     @Path("/echo")
     @Span(callLabels = Option.TRUE, stackTrace = Option.TRUE)
     public Response get(@QueryParam("echo") String echo) throws InterruptedException {
-        Thread.sleep((long) (Math.random() * 5000));
+        Thread.sleep((long) (Math.random() * 2000));
         return Response.ok(echoService.echo(echo)).build();
     }
 

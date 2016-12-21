@@ -11,7 +11,7 @@ public class EchoService {
 
     @Span(callLabels = Option.TRUE, stackTrace = Option.TRUE)
     public String echo(@Label(name = "echo") String echo) throws InterruptedException {
-        Thread.sleep((long) (Math.random() * 5000));
+        Thread.sleep((long) (Math.random() * 2000));
         return echo;
     }
 
