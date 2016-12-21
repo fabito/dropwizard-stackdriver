@@ -11,6 +11,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Created by fabio on 19/12/16.
  */
+@Ignore
 public class EchoResourceTest {
 
     @ClassRule
