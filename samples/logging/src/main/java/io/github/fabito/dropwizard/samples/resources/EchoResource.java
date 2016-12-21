@@ -1,0 +1,19 @@
+package io.github.fabito.dropwizard.samples.resources;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Response;
+
+/**
+ * Created by fabio on 07/12/16.
+ */
+@Path("/api/echo")
+public class EchoResource {
+
+    @GET
+    public Response getV(@QueryParam("echo") String echo) {
+        return Response.ok(echo).build();
+    }
+
+}

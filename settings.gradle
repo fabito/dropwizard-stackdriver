@@ -1,0 +1,6 @@
+rootProject.name = 'dropwizard-gcp'
+
+include 'dropwizard-gke-logging'
+include 'dropwizard-stackdriver-trace'
+include 'samples:trace'
+

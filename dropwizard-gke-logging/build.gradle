@@ -1,0 +1,9 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+dependencies {
+    compile "io.dropwizard:dropwizard-logging:${dropwizardVersion}"
+    compile group: 'ch.qos.logback.contrib', name: 'logback-json-classic', version: '0.1.5'
+    compile group: 'ch.qos.logback.contrib', name: 'logback-jackson', version: '0.1.5'
+}
