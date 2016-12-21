@@ -5,17 +5,21 @@ import com.google.cloud.trace.service.TraceService;
 import io.dropwizard.setup.Environment;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by fabio on 15/12/16.
  */
 public class TraceConfiguration {
 
-
     Integer numThreads;
     String name;
     String projectId;
     Integer bufferSize;
+
+    // Patterns for filter
+    // defaults to /*
+    List<String> urlPatterns;
 
     // RateLimitingTraceOptionsFactory
 
@@ -25,8 +29,6 @@ public class TraceConfiguration {
     // ConstantTraceOptionsFactory
     Boolean enabled;
     Boolean stackTraceEnabled;
-
-
 
     TraceService traceService(Environment environment) throws IOException {
         return TraceGrpcApiService.builder()
