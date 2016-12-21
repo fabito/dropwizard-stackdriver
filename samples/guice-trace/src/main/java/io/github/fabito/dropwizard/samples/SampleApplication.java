@@ -1,10 +1,8 @@
 package io.github.fabito.dropwizard.samples;
 
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.trace.SpanContextHandler;
 import com.google.cloud.trace.Trace;
 import com.google.cloud.trace.Tracer;
-import com.google.cloud.trace.core.ConstantTraceOptionsFactory;
 import com.google.cloud.trace.core.SpanContextFactory;
 import com.google.cloud.trace.core.TraceContext;
 import com.google.cloud.trace.guice.annotation.TracerSpanModule;
@@ -59,7 +57,7 @@ public class SampleApplication extends Application<SampleConfiguration> {
                             @Singleton
                             TraceService traceService() throws IOException {
                                 return TraceGrpcApiService.builder()
-                                            .setProjectId("sc-core-dev")
+                                            .setProjectId("set-me-up")
                                             .setScheduledDelay(1)
                                             .build();
                             }

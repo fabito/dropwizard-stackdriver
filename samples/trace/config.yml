@@ -6,3 +6,7 @@ logging:
   - type: console
     timeZone: UTC
     target: stdout
+
+trace:
+
+httpClient:
