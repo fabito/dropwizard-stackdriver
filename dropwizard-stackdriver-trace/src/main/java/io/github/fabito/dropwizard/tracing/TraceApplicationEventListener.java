@@ -1,10 +1,9 @@
-package io.github.fabito.dropwizard.samples.infrastructure;
+package io.github.fabito.dropwizard.tracing;
 
-import com.google.cloud.trace.SpanContextHandler;
-import com.google.cloud.trace.Tracer;
 import com.google.cloud.trace.annotation.Span;
-import com.google.cloud.trace.core.SpanContextFactory;
 import com.google.cloud.trace.service.TraceService;
+import com.google.common.collect.Lists;
+import org.glassfish.jersey.server.internal.monitoring.CompositeRequestEventListener;
 import org.glassfish.jersey.server.model.Resource;
 import org.glassfish.jersey.server.model.ResourceMethod;
 import org.glassfish.jersey.server.monitoring.ApplicationEvent;
@@ -14,6 +13,7 @@ import org.glassfish.jersey.server.monitoring.RequestEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,16 +26,12 @@ public class TraceApplicationEventListener implements ApplicationEventListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceApplicationEventListener.class);
 
     private Map<Method, Span> methodMap = new HashMap<>();
-    private final SpanContextFactory spanContextFactory;
-    private final SpanContextHandler spanContextHandler;
-    private final Tracer tracer;
+    private final TraceService traceService;
 
+    @Inject
     public TraceApplicationEventListener(TraceService traceService) {
-        this.spanContextFactory = traceService.getSpanContextFactory();
-        this.spanContextHandler = traceService.getSpanContextHandler();
-        this.tracer = traceService.getTracer();
+        this.traceService = traceService;
     }
-
 
     @Override
     public void onEvent(ApplicationEvent event) {
@@ -54,17 +50,34 @@ public class TraceApplicationEventListener implements ApplicationEventListener {
         }
     }
 
+    final TraceRequestEventListener traceRequestEventListener = new TraceRequestEventListener();
+
     @Override
     public RequestEventListener onRequest(RequestEvent requestEvent) {
-        return new TraceRequestEventListener();
+        final SpanAwareTraceRequestEventListener spanAwareTraceRequestEventListener = new SpanAwareTraceRequestEventListener(this.methodMap, this.traceService);
+        return new CompositeRequestEventListener(Lists.newArrayList(traceRequestEventListener, spanAwareTraceRequestEventListener));
     }
 
-    private class TraceRequestEventListener implements RequestEventListener {
+    private static class TraceRequestEventListener implements RequestEventListener {
+        @Override
+        public void onEvent(RequestEvent event) {
+            if (event.getType() == RequestEvent.Type.RESOURCE_METHOD_START) {
+                LOGGER.info("############# INIT");
+            } else if (event.getType() == RequestEvent.Type.RESP_FILTERS_START) {
+                LOGGER.info("############# END");
+            }
+        }
+    }
 
-        private final TraceAspect traceAspect;
+    private static class SpanAwareTraceRequestEventListener implements RequestEventListener {
 
-        private TraceRequestEventListener() {
-            this.traceAspect = new TraceAspect(spanContextFactory, spanContextHandler, tracer);
+        private final Map<Method, Span> methodMap;
+        private final TraceService traceService;
+        private TraceAroundAdvice traceAspect;
+
+        private SpanAwareTraceRequestEventListener(Map<Method, Span> methodMap, TraceService traceService) {
+            this.methodMap = methodMap;
+            this.traceService = traceService;
         }
 
         @Override
@@ -73,11 +86,19 @@ public class TraceApplicationEventListener implements ApplicationEventListener {
                 final Method method = event.getUriInfo()
                         .getMatchedResourceMethod().getInvocable().getDefinitionMethod();
                 Span span = methodMap.get(method);
-                traceAspect.beforeStart(method, span);
+                if (span != null) {
+
+                    this.traceAspect = new TraceAspect2(span, method, traceService.getTracer());
+                    this.traceAspect.beforeStart();
+                }
             } else if (event.getType() == RequestEvent.Type.RESP_FILTERS_START) {
-                traceAspect.afterEnd();
+                if (traceAspect != null) {
+                    traceAspect.afterEnd();
+                }
             } else if (event.getType() == RequestEvent.Type.ON_EXCEPTION) {
-                traceAspect.onError(event.getException());
+                if (traceAspect != null) {
+                    traceAspect.onError(event.getException());
+                }
             }
         }
     }

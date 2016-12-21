@@ -1,4 +1,4 @@
-package io.github.fabito.dropwizard.samples.infrastructure;
+package io.github.fabito.dropwizard.tracing;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;

@@ -1,4 +1,4 @@
-package io.github.fabito.dropwizard.samples.infrastructure;
+package io.github.fabito.dropwizard.tracing;
 
 import com.google.api.client.util.Maps;
 import com.google.cloud.trace.annotation.Span;
@@ -14,9 +14,7 @@ import java.util.Map;
  * A factory for creating proxies for components that use Hibernate data access objects
  * outside Jersey resources.
  * <p>A created proxy will be aware of the {@link Span} annotation
- * on the original class methods and will open a Hibernate session with a transaction
- * around them.</p>
- * https://github.com/dropwizard/dropwizard/pull/1361
+ * on the original class methods and will around them.</p>
  */
 public class SpanAwareProxyFactory {
 

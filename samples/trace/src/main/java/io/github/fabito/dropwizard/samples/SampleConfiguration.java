@@ -3,12 +3,9 @@ package io.github.fabito.dropwizard.samples;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
 import io.dropwizard.client.HttpClientConfiguration;
-import io.github.fabito.dropwizard.samples.infrastructure.TraceConfiguration;
+import io.github.fabito.dropwizard.tracing.TraceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class SampleConfiguration extends Configuration {
 

@@ -1,4 +1,4 @@
-package io.github.fabito.dropwizard.samples.infrastructure;
+package io.github.fabito.dropwizard.tracing;
 
 import com.google.cloud.trace.Tracer;
 import com.google.cloud.trace.annotation.Label;

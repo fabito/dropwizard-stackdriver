@@ -1,44 +1,43 @@
-package io.github.fabito.dropwizard.samples.infrastructure;
+package io.github.fabito.dropwizard.tracing;
 
 import com.google.cloud.trace.SpanContextHandler;
 import com.google.cloud.trace.Tracer;
 import com.google.cloud.trace.annotation.Option;
 import com.google.cloud.trace.annotation.Span;
 import com.google.cloud.trace.core.*;
+import com.google.cloud.trace.service.TraceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 
-public class TraceAspect {
+public class TraceAspect implements TraceAroundAdvice {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceAspect.class);
 
+    private final Method method;
+    private final Span span;
     private final SpanContextFactory spanContextFactory;
     private final SpanContextHandler spanContextHandler;
     private final Tracer tracer;
 
     private SpanContextHandle handle;
-    private SpanContext context;
-    private Method method;
-
     private TraceContext traceContext;
     private Labels.Builder labelsBeforeCallBuilder = Labels.builder();
     private Labels.Builder labelsAfterCallBuilder = Labels.builder();
-    private Span span;
 
-    public TraceAspect(SpanContextFactory spanContextFactory, SpanContextHandler spanContextHandler, Tracer tracer) {
-        this.spanContextFactory = spanContextFactory;
-        this.spanContextHandler = spanContextHandler;
-        this.tracer = tracer;
+    public TraceAspect(Span span, Method method, TraceService traceService) {
+        this.spanContextFactory = traceService.getSpanContextFactory();
+        this.spanContextHandler = traceService.getSpanContextHandler();
+        this.tracer = traceService.getTracer();
+        this.span = span;
+        this.method = method;
     }
 
-    public void beforeStart(Method method2, Span span2) {
-        LOGGER.info("start");
-        method = method2;
-        context = spanContextFactory.initialContext();
-        handle = spanContextHandler.attach(context);
-        span = span2;
+    @Override
+    public void beforeStart() {
+        SpanContext spanContext = spanContextFactory.initialContext();
+        handle = spanContextHandler.attach(spanContext);
         if (span.callLabels() == Option.TRUE) {
             labelsBeforeCallBuilder
                     .add("trace.cloud.google.com/call/class",
@@ -66,8 +65,8 @@ public class TraceAspect {
     }
 
 
+    @Override
     public void afterEnd() {
-        LOGGER.info("end");
         boolean stackTraceEnabled = traceContext.getHandle().getCurrentSpanContext().getTraceOptions()
                 .getStackTraceEnabled();
         if (stackTraceEnabled) {
@@ -83,9 +82,8 @@ public class TraceAspect {
     }
 
 
+    @Override
     public void onError(Throwable t) {
-        LOGGER.info("error");
-
         if (span.callLabels() == Option.TRUE) {
             labelsAfterCallBuilder
                     .add("trace.cloud.google.com/exception/class", t.getClass().getName())

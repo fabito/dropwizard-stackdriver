@@ -1,8 +1,9 @@
-package io.github.fabito.dropwizard.samples.infrastructure;
+package io.github.fabito.dropwizard.tracing;
 
 import com.google.cloud.trace.annotation.Span;
 import org.aopalliance.intercept.ConstructorInterceptor;
 import org.aopalliance.intercept.MethodInterceptor;
+import org.glassfish.hk2.api.Descriptor;
 import org.glassfish.hk2.api.Filter;
 import org.glassfish.hk2.api.InterceptionService;
 import org.glassfish.hk2.internal.StarFilter;
@@ -22,7 +23,11 @@ public class TraceInterceptionService implements InterceptionService {
 
     @Override
     public Filter getDescriptorFilter() {
-        return StarFilter.getDescriptorFilter();
+//        return StarFilter.getDescriptorFilter();
+        return d -> {
+            final String clazz = d.getImplementation();
+            return clazz.startsWith("io.github.fabito");
+        };
     }
 
     @Override
