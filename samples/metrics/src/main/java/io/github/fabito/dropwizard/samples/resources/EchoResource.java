@@ -13,20 +13,23 @@ import javax.ws.rs.core.Response;
  * Created by fabio on 07/12/16.
  */
 @Path("/api")
-@Metered
-@Timed
-@ExceptionMetered
 public class EchoResource {
 
     @GET
     @Path("/echo")
+    @Metered(name = "echo.meterer")
+    @Timed(name = "echo.timer")
+    @ExceptionMetered(name = "echo.exception.meterer")
     public Response echo(@QueryParam("echo") String echo) {
         return Response.ok(echo).build();
     }
 
     @GET
     @Path("/badecho")
-    public Response badecho(@QueryParam("echo") String echo) {
+    @Metered(name = "badecho.meterer")
+    @Timed(name = "badecho.timer")
+    @ExceptionMetered(name = "badecho.exception.meterer")
+    public Response badecho() {
         return Response.serverError().build();
     }
 
