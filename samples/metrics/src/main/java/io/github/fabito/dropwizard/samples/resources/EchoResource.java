@@ -17,18 +17,18 @@ public class EchoResource {
 
     @GET
     @Path("/echo")
-    @Metered(name = "echo.meterer")
-    @Timed(name = "echo.timer")
-    @ExceptionMetered(name = "echo.exception.meterer")
+//    @Metered(name = "echo.meterer")
+//    @Timed(name = "echo.timer")
+//    @ExceptionMetered(name = "echo.exception.meterer")
     public Response echo(@QueryParam("echo") String echo) {
         return Response.ok(echo).build();
     }
 
     @GET
     @Path("/badecho")
-    @Metered(name = "badecho.meterer")
-    @Timed(name = "badecho.timer")
-    @ExceptionMetered(name = "badecho.exception.meterer")
+//    @Metered(name = "badecho.meterer")
+//    @Timed(name = "badecho.timer")
+//    @ExceptionMetered(name = "badecho.exception.meterer")
     public Response badecho() {
         return Response.serverError().build();
     }
