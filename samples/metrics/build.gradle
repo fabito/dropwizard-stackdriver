@@ -1,0 +1,36 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+buildscript {
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+project.ext {
+    configPath = "$projectDir/"
+}
+
+dependencies {
+    compile project(':dropwizard-gke-metrics')
+    compile project(':dropwizard-gke-logging')
+    compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
+    compile "io.dropwizard:dropwizard-core:${dropwizardVersion}"
+    compile group: 'io.dropwizard.modules', name: 'dropwizard-java8', version: '0.9.0-1'
+}
+
+mainClassName = "io.github.fabito.dropwizard.samples.SampleApplication"
+
+run {
+    args 'server', configPath + 'config.yml'
+}
+
+shadowJar {
+    mergeServiceFiles()
+}
+
+runShadow {
+    args 'server', configPath + 'config.yml'
+}

@@ -4,4 +4,5 @@ include 'dropwizard-gke-logging'
 include 'dropwizard-stackdriver-trace'
 include 'dropwizard-gke-metrics'
 include 'samples:trace'
+include 'samples:metrics'
 
