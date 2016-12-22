@@ -1,10 +1,16 @@
 package io.github.fabito.dropwizard.metrics;
 
 import com.codahale.metrics.*;
+import com.google.api.client.googleapis.batch.BatchRequest;
+import com.google.api.client.googleapis.batch.json.JsonBatchCallback;
+import com.google.api.client.googleapis.json.GoogleJsonError;
+import com.google.api.client.googleapis.json.GoogleJsonErrorContainer;
+import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.monitoring.v3.Monitoring;
 import com.google.api.services.monitoring.v3.model.*;
 import com.google.api.services.monitoring.v3.model.Metric;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,12 +125,30 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
     private final Monitoring monitoring;
     private final Clock clock;
     private final String timeSeriesName;
+    private final String startTime;
+    private final JsonBatchCallback<Empty> batchCallback = new JsonBatchCallback<Empty>() {
+        @Override
+        public void onFailure(GoogleJsonError e, HttpHeaders responseHeaders) throws IOException {
+            LOGGER.warn("Error sending batch to Stackdriver: {}", e != null ? e.toPrettyString() : "");
+        }
+
+        @Override
+        public void onSuccess(Empty empty, HttpHeaders responseHeaders) throws IOException {
+            if (!empty.isEmpty()) {
+                LOGGER.warn(empty.toPrettyString());
+            } else {
+                LOGGER.debug("Batch sent to Stackdriver");
+            }
+        }
+    };
+
 
     private StackdriverMonitoringReporter(MetricRegistry registry, Monitoring monitoring, String projectId, Clock clock, TimeUnit rateUnit, TimeUnit durationUnit, MetricFilter filter) {
         super(registry, "stackdriver-reporter", filter, rateUnit, durationUnit);
         this.monitoring = monitoring;
         this.clock = clock;
         this.timeSeriesName = "projects/" + projectId;
+        this.startTime = new DateTime(clock.getTime(), 0).toStringRfc3339();
     }
 
     @Override
@@ -171,79 +195,86 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
             }
 
             if (!timeSeriesList.isEmpty()) {
-                CreateTimeSeriesRequest timeSeriesRequest = new CreateTimeSeriesRequest();
-                timeSeriesRequest.setTimeSeries(timeSeriesList);
-                final Empty empty = monitoring.projects().timeSeries().create(this.timeSeriesName, timeSeriesRequest).execute();
-                if (!empty.isEmpty()) {
-                    LOGGER.warn(empty.toPrettyString());
+                if (timeSeriesList.size() > 200) {
+                    final BatchRequest batch = monitoring.batch();
+                    for (List<TimeSeries> partition : Iterables.partition(timeSeriesList, 200)) {
+                        CreateTimeSeriesRequest timeSeriesRequest = new CreateTimeSeriesRequest();
+                        timeSeriesRequest.setTimeSeries(partition);
+                        Monitoring.Projects.TimeSeries.Create create = monitoring.projects().timeSeries().create(this.timeSeriesName, timeSeriesRequest);
+                        create.queue(batch, batchCallback);
+                    }
+                    batch.execute();
+                } else {
+                    CreateTimeSeriesRequest timeSeriesRequest = new CreateTimeSeriesRequest();
+                    timeSeriesRequest.setTimeSeries(timeSeriesList);
+                    final Empty empty = monitoring.projects().timeSeries().create(this.timeSeriesName, timeSeriesRequest).execute();
+                    if (!empty.isEmpty()) {
+                        LOGGER.warn(empty.toPrettyString());
+                    }
                 }
+
+
             }
 
         } catch (IOException e) {
-            LOGGER.warn("Unable to report to Stackdriver",  e);
+            LOGGER.warn("Unable to report to Stackdriver", e);
         }
     }
 
-    private List<TimeSeries> reportTimer(String name, Timer timer, String timestamp) {
+    private List<TimeSeries> reportTimer(String name, Timer timer, String endTime) {
         final Snapshot snapshot = timer.getSnapshot();
         final List<TimeSeries> timerTimeSeries = Lists.newArrayList(
-                timeSeries(name, point(timestamp, typedValue(snapshot.getMax())), "max", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.getMean())), "mean", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.getMin())), "min", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.getStdDev())), "stddev", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.getMedian())), "p50", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.get75thPercentile())), "p75", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.get95thPercentile())), "p95", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.get98thPercentile())), "p98", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.get99thPercentile())), "p99", GAUGE),
-                timeSeries(name, point(timestamp, typedValue(snapshot.get999thPercentile())), "p999", GAUGE)
-                );
-        timerTimeSeries.addAll(reportMetered(name, timer, timestamp));
+                timeSeries(name, snapshot.getMax(), endTime, "max", GAUGE),
+                timeSeries(name, snapshot.getMean(), endTime, "mean", GAUGE),
+                timeSeries(name, snapshot.getMin(), endTime, "min", GAUGE),
+                timeSeries(name, snapshot.getStdDev(), endTime, "stddev", GAUGE),
+                timeSeries(name, snapshot.getMedian(), endTime, "p50", GAUGE),
+                timeSeries(name, snapshot.get75thPercentile(), endTime, "p75", GAUGE),
+                timeSeries(name, snapshot.get95thPercentile(), endTime, "p95", GAUGE),
+                timeSeries(name, snapshot.get98thPercentile(), endTime, "p98", GAUGE),
+                timeSeries(name, snapshot.get99thPercentile(), endTime, "p99", GAUGE),
+                timeSeries(name, snapshot.get999thPercentile(), endTime, "p999", GAUGE)
+        );
+        timerTimeSeries.addAll(reportMetered(name, timer, endTime));
         return timerTimeSeries;
     }
 
-    private List<TimeSeries> reportMetered(String name, Metered meter, String timestamp) {
+    private List<TimeSeries> reportMetered(String name, Metered meter, String endTime) {
         return Lists.newArrayList(
-            timeSeries(name, point(timestamp, typedValue(meter.getCount())), "count", CUMULATIVE),
-            timeSeries(name, point(timestamp, typedValue(meter.getOneMinuteRate())), "m1_rate", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(meter.getFiveMinuteRate())), "m5_rate", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(meter.getFifteenMinuteRate())), "m15_rate", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(meter.getMeanRate())), "mean_rate", GAUGE)
+                timeSeries(name, meter.getCount(), endTime, "count", CUMULATIVE),
+                timeSeries(name, meter.getOneMinuteRate(), endTime, "m1_rate", GAUGE),
+                timeSeries(name, meter.getFiveMinuteRate(), endTime, "m5_rate", GAUGE),
+                timeSeries(name, meter.getFifteenMinuteRate(), endTime, "m15_rate", GAUGE),
+                timeSeries(name, meter.getMeanRate(), endTime, "mean_rate", GAUGE)
         );
     }
 
-    private List<TimeSeries> reportHistogram(String name, Histogram histogram, String timestamp) {
+    private List<TimeSeries> reportHistogram(String name, Histogram histogram, String endTime) {
         final Snapshot snapshot = histogram.getSnapshot();
         return Lists.newArrayList(
-            timeSeries(name, point(timestamp, typedValue(histogram.getCount())), "count", CUMULATIVE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.getMax())), "max", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.getMean())), "mean", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.getMin())), "min", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.getStdDev())), "stddev", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.getMedian())), "p50", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.get75thPercentile())), "p75", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.get95thPercentile())), "p95", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.get98thPercentile())), "p98", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.get99thPercentile())), "p99", GAUGE),
-            timeSeries(name, point(timestamp, typedValue(snapshot.get999thPercentile())), "p999", GAUGE)
+                timeSeries(name, histogram.getCount(), endTime, "count", CUMULATIVE),
+                timeSeries(name, snapshot.getMax(), endTime, "max", GAUGE),
+                timeSeries(name, snapshot.getMean(), endTime, "mean", GAUGE),
+                timeSeries(name, snapshot.getMin(), endTime, "min", GAUGE),
+                timeSeries(name, snapshot.getStdDev(), endTime, "stddev", GAUGE),
+                timeSeries(name, snapshot.getMedian(), endTime, "p50", GAUGE),
+                timeSeries(name, snapshot.get75thPercentile(), endTime, "p75", GAUGE),
+                timeSeries(name, snapshot.get95thPercentile(), endTime, "p95", GAUGE),
+                timeSeries(name, snapshot.get98thPercentile(), endTime, "p98", GAUGE),
+                timeSeries(name, snapshot.get99thPercentile(), endTime, "p99", GAUGE),
+                timeSeries(name, snapshot.get999thPercentile(), endTime, "p999", GAUGE)
         );
     }
 
-    private TimeSeries reportCounter(String name, Counter counter, String now) {
-        final TypedValue value = new TypedValue().setInt64Value(counter.getCount());
-        Point point = point(now, value);
-        return timeSeries(name, point, "count", CUMULATIVE);
+    private TimeSeries reportCounter(String name, Counter counter, String endTime) {
+        return timeSeries(name, counter.getCount(), endTime, "count", CUMULATIVE);
     }
 
-    private TimeSeries reportGauge(String name, Gauge gauge, String now) {
+    private TimeSeries reportGauge(String name, Gauge gauge, String endTime) {
         final TypedValue value = typedValue(gauge.getValue());
         if (value != null) {
-            Point point = point(now, value);
-            return new TimeSeries()
-                    .setMetricKind(GAUGE)
-                    .setMetric(metric(prefix(name)))
-                    //.setResource(new MonitoredResource().setType("gke_container"))
-                    .setPoints(Lists.newArrayList(point));
+            return timeSeries(name, gauge.getValue(), endTime, "", GAUGE);
+
         }
         return null;
     }
@@ -266,24 +297,29 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
         } else if (o instanceof BigDecimal) {
             return new TypedValue().setDoubleValue(((BigDecimal) o).doubleValue());
         }
-       return null;
+        return null;
     }
 
-    private Point point(String timestamp, TypedValue value) {
-        return new Point()
-                .setInterval(timeInterval(timestamp))
-                .setValue(value);
-    }
 
-    private TimeInterval timeInterval(String timestamp) {
-        return new TimeInterval().setEndTime(timestamp);
-    }
-
-    private TimeSeries timeSeries(String name, Point count, String subType, String metricKind) {
+    private TimeSeries timeSeries(String name, Object pointValue, String endTime, String subType, String metricKind) {
         return new TimeSeries()
                 .setMetricKind(metricKind)
                 .setMetric(metric(prefix(name, subType)))
-                .setPoints(Lists.newArrayList(count));
+                .setPoints(Lists.newArrayList(point(metricKind, endTime, typedValue(pointValue))));
+    }
+
+    private Point point(String metricKind, String endTime, TypedValue value) {
+        return new Point()
+                .setInterval(timeInterval(endTime, metricKind))
+                .setValue(value);
+    }
+
+    private TimeInterval timeInterval(String endTime, String metricKind) {
+        final TimeInterval timeInterval = new TimeInterval().setEndTime(endTime);
+        if (CUMULATIVE.equals(metricKind)) {
+            timeInterval.setStartTime(this.startTime);
+        }
+        return timeInterval.setEndTime(endTime);
     }
 
     private Metric metric(String type) {
