@@ -4,12 +4,12 @@ import com.codahale.metrics.*;
 import com.google.api.client.googleapis.batch.BatchRequest;
 import com.google.api.client.googleapis.batch.json.JsonBatchCallback;
 import com.google.api.client.googleapis.json.GoogleJsonError;
-import com.google.api.client.googleapis.json.GoogleJsonErrorContainer;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.monitoring.v3.Monitoring;
 import com.google.api.services.monitoring.v3.model.*;
 import com.google.api.services.monitoring.v3.model.Metric;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by fabio on 21/12/16.
@@ -126,22 +128,6 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
     private final Clock clock;
     private final String timeSeriesName;
     private final String startTime;
-    private final JsonBatchCallback<Empty> batchCallback = new JsonBatchCallback<Empty>() {
-        @Override
-        public void onFailure(GoogleJsonError e, HttpHeaders responseHeaders) throws IOException {
-            LOGGER.warn("Error sending batch to Stackdriver: {}", e != null ? e.toPrettyString() : "");
-        }
-
-        @Override
-        public void onSuccess(Empty empty, HttpHeaders responseHeaders) throws IOException {
-            if (!empty.isEmpty()) {
-                LOGGER.warn(empty.toPrettyString());
-            } else {
-                LOGGER.debug("Batch sent to Stackdriver");
-            }
-        }
-    };
-
 
     private StackdriverMonitoringReporter(MetricRegistry registry, Monitoring monitoring, String projectId, Clock clock, TimeUnit rateUnit, TimeUnit durationUnit, MetricFilter filter) {
         super(registry, "stackdriver-reporter", filter, rateUnit, durationUnit);
@@ -201,7 +187,7 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
                         CreateTimeSeriesRequest timeSeriesRequest = new CreateTimeSeriesRequest();
                         timeSeriesRequest.setTimeSeries(partition);
                         Monitoring.Projects.TimeSeries.Create create = monitoring.projects().timeSeries().create(this.timeSeriesName, timeSeriesRequest);
-                        create.queue(batch, batchCallback);
+                        create.queue(batch, new CreateTimeSeriesJsonBatchCallback(partition));
                     }
                     batch.execute();
                 } else {
@@ -300,7 +286,6 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
         return null;
     }
 
-
     private TimeSeries timeSeries(String name, Object pointValue, String endTime, String subType, String metricKind) {
         return new TimeSeries()
                 .setMetricKind(metricKind)
@@ -349,4 +334,57 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
             builder.append(part);
         }
     }
+
+    private static class CreateTimeSeriesJsonBatchCallback extends JsonBatchCallback<Empty> {
+
+        private static final Pattern pattern = Pattern.compile("timeSeries\\[(\\d+)]");
+
+        private final List<TimeSeries> batchItems;
+
+        private CreateTimeSeriesJsonBatchCallback(List<TimeSeries> batchItems) {
+            this.batchItems = batchItems;
+        }
+
+        @Override
+        public void onFailure(GoogleJsonError e, HttpHeaders responseHeaders) throws IOException {
+            LOGGER.warn("Error sending batch (size={}) to Stackdriver", batchItems.size());
+            if (e != null) {
+                LOGGER.warn(e.toPrettyString());
+                final Matcher matcher = pattern.matcher(e.getMessage());
+                if (matcher.find(1)) {
+                    try {
+                        int index = Integer.valueOf(matcher.group(1));
+
+                        if (index > 0) {
+                            final TimeSeries timeSeriesBefore = batchItems.get(index-1);
+                            LOGGER.debug("TimeSeries on index {}: {}", index-1, timeSeriesBefore.toPrettyString());
+                        }
+
+                        final TimeSeries timeSeries = batchItems.get(index);
+                        LOGGER.debug("TimeSeries on index {}: {}", index, timeSeries.toPrettyString());
+
+                        if (index < batchItems.size()) {
+                            final TimeSeries timeSeriesAfter = batchItems.get(index+1);
+                            LOGGER.debug("TimeSeries on index {}: {}", index+1, timeSeriesAfter.toPrettyString());
+                        }
+
+                    } catch(Throwable t) {
+                        LOGGER.debug("Could not find problematic TimeSeries");
+                    }
+                } else {
+                    LOGGER.debug("Could not find problematic TimeSeries");
+                }
+            }
+        }
+
+        @Override
+        public void onSuccess(Empty empty, HttpHeaders responseHeaders) throws IOException {
+            if (!empty.isEmpty()) {
+                LOGGER.warn(empty.toPrettyString());
+            } else {
+                LOGGER.debug("Batch (size={}) sent to Stackdriver", batchItems.size());
+            }
+        }
+    }
+
 }
