@@ -1,33 +1,25 @@
 package io.github.fabito.dropwizard.tracing;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.cloud.trace.SpanContextHandler;
 import com.google.cloud.trace.Tracer;
+import com.google.cloud.trace.apachehttp.TraceRequestInterceptor;
+import com.google.cloud.trace.apachehttp.TraceResponseInterceptor;
 import com.google.cloud.trace.core.SpanContextFactory;
 import com.google.cloud.trace.http.TraceHttpRequestInterceptor;
 import com.google.cloud.trace.http.TraceHttpResponseInterceptor;
-import com.google.cloud.trace.service.TraceGrpcApiService;
+import com.google.cloud.trace.instrumentation.servlet.TraceServletFilter;
 import com.google.cloud.trace.service.TraceService;
-import com.google.cloud.trace.servlet.TraceServletFilter;
 import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.client.HttpClientBuilder;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import org.glassfish.hk2.api.ServiceLocator;
-import org.glassfish.hk2.extras.ExtrasUtilities;
-import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
-import org.glassfish.jersey.server.spi.Container;
-import org.glassfish.jersey.server.spi.ContainerLifecycleListener;
-import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
-import javax.ws.rs.core.Feature;
-import javax.ws.rs.core.FeatureContext;
-import javax.ws.rs.ext.Provider;
 import java.util.EnumSet;
-import java.util.UUID;
 
 /**
  * Created by fabio on 15/12/16.
@@ -36,8 +28,9 @@ public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceBundle.class);
 
-
     private TraceService traceService;
+    private TraceHttpRequestInterceptor traceHttpRequestInterceptor;
+    private TraceHttpResponseInterceptor traceHttpResponseInterceptor;
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
@@ -45,57 +38,26 @@ public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
 
     @Override
     public void run(T configuration, Environment environment) throws Exception {
-        LOGGER.info("Running bundle");
-
+        LOGGER.debug("Start bundle");
         TraceConfiguration traceConfiguration = getTraceConfiguration(configuration);
-
-//        ScheduledExecutorService scheduledExecutorService = environment.lifecycle()
-//                .scheduledExecutorService("trace")
-//                .threads(1)
-//                .build();
-
-        traceService = TraceGrpcApiService.builder()
-                .setProjectId("sc-core-dev")
-                .setScheduledDelay(1)
-                //.setBufferSize()
-                //.setTraceOptionsFactory(TraceOptionsFactory)
-                //.setScheduledExecutorService(scheduledExecutorService)
-                .build();
+        traceService = traceConfiguration.traceService(environment);
 
         final SpanContextHandler spanContextHandler = traceService.getSpanContextHandler();
         final SpanContextFactory spanContextFactory = traceService.getSpanContextFactory();
-        final TraceHttpRequestInterceptor requestInterceptor = new TraceHttpRequestInterceptor(traceService.getTracer());
-        final TraceHttpResponseInterceptor responseInterceptor = new TraceHttpResponseInterceptor(traceService.getTracer());
+        traceHttpRequestInterceptor = new TraceHttpRequestInterceptor(traceService.getTracer());
+        traceHttpResponseInterceptor = new TraceHttpResponseInterceptor(traceService.getTracer());
 
-        final FilterRegistration.Dynamic tracingFilter = environment.servlets().addFilter("tracing-filter", new TraceServletFilter(spanContextHandler, spanContextFactory, requestInterceptor, responseInterceptor));
-        tracingFilter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
+        final FilterRegistration.Dynamic tracingFilter = environment.servlets().addFilter("tracing-filter", new TraceServletFilter(spanContextHandler, spanContextFactory, traceHttpRequestInterceptor, traceHttpResponseInterceptor));
+        tracingFilter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, traceConfiguration.getUrlPatterns());
 
-        final TraceInterceptorBinder traceInterceptorBinder = new TraceInterceptorBinder(traceService);
+        environment.jersey().register(new TracingFeature(traceHttpRequestInterceptor, traceHttpResponseInterceptor));
 
-//        ServiceLocator serviceLocator = ServiceLocatorUtilities.bind(UUID.randomUUID().toString(), traceInterceptorBinder);
-//        environment.getApplicationContext().getAttributes().setAttribute(ServletProperties.SERVICE_LOCATOR, serviceLocator);
+//        final TraceInterceptorBinder traceInterceptorBinder = new TraceInterceptorBinder(traceService);
+//        environment.jersey().register(traceInterceptorBinder);
 
-//        ServiceLocator locator = ServiceLocatorUtilities.bind(traceInterceptorBinder);
-//        InjectionBridge.setApplicationServiceLocator(locator);
-//        environment.jersey().register(InjectionBridge.class);
-        environment.jersey().register(traceInterceptorBinder);
-
-//        environment.jersey().getResourceConfig().register(new ContainerLifecycleListener() {
-//            public void onStartup(Container container) {
-//                /*Get the HK2 Service Locator*/
-//                ServiceLocator serviceLocator = container.getApplicationHandler().getServiceLocator();
-//                //serviceLocator.getService()
-//
-//                //environment.jersey().register();
-//            }
-//
-//            public void onReload(Container container) {/*...*/}
-//
-//            public void onShutdown(Container container) {/*...*/}
-//        });
-
-//        environment.jersey().register(new TracingFeature(requestInterceptor, responseInterceptor));
 //        environment.jersey().register(new TraceApplicationEventListener(traceService));
+
+        LOGGER.debug("End bundle");
     }
 
     public abstract TraceConfiguration getTraceConfiguration(T configuration);
@@ -104,31 +66,38 @@ public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
         return traceService.getTracer();
     }
 
+    public HttpClientBuilder httpClientBuilder(Environment environment) {
+        return new TracedHttpClientBuilder(environment, traceHttpRequestInterceptor, traceHttpResponseInterceptor);
+    }
 
-    @Provider
-    public static class InjectionBridge implements Feature
-    {
-        private static ServiceLocator _applicationServiceLocator;
+    public TraceService getTraceService() {
+        return traceService;
+    }
 
-        private final ServiceLocator _serviceLocator;
+    public static class TracedHttpClientBuilder extends HttpClientBuilder {
 
-        @Inject
-        private InjectionBridge(ServiceLocator serviceLocator)
-        {
-            _serviceLocator = serviceLocator;
+        private final TraceHttpRequestInterceptor traceHttpRequestInterceptor;
+        private final TraceHttpResponseInterceptor traceHttpResponseInterceptor;
+
+        public TracedHttpClientBuilder(MetricRegistry metricRegistry, TraceHttpRequestInterceptor traceHttpRequestInterceptor, TraceHttpResponseInterceptor traceHttpResponseInterceptor) {
+            super(metricRegistry);
+            this.traceHttpRequestInterceptor = traceHttpRequestInterceptor;
+            this.traceHttpResponseInterceptor = traceHttpResponseInterceptor;
+        }
+
+        public TracedHttpClientBuilder(Environment environment, TraceHttpRequestInterceptor traceHttpRequestInterceptor,
+                TraceHttpResponseInterceptor traceHttpResponseInterceptor) {
+            super(environment);
+            this.traceHttpRequestInterceptor = traceHttpRequestInterceptor;
+            this.traceHttpResponseInterceptor = traceHttpResponseInterceptor;
         }
 
         @Override
-        public boolean configure(FeatureContext context)
-        {
-            if (_applicationServiceLocator != null)
-                ExtrasUtilities.bridgeServiceLocator(_serviceLocator, _applicationServiceLocator);
-            return true;
-        }
-
-        public static void setApplicationServiceLocator(ServiceLocator applicationServiceLocator)
-        {
-            _applicationServiceLocator = applicationServiceLocator;
+        protected org.apache.http.impl.client.HttpClientBuilder customizeBuilder(org.apache.http.impl.client.HttpClientBuilder builder) {
+            builder.addInterceptorFirst(new TraceRequestInterceptor(traceHttpRequestInterceptor));
+            builder.addInterceptorLast(new TraceResponseInterceptor(traceHttpResponseInterceptor));
+            return builder;
         }
     }
+
 }

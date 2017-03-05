@@ -4,8 +4,15 @@ import com.google.cloud.trace.annotation.Span;
 import com.google.cloud.trace.service.TraceService;
 import com.google.common.collect.Lists;
 import org.glassfish.jersey.server.internal.monitoring.CompositeRequestEventListener;
+import org.glassfish.jersey.server.model.AbstractResourceModelVisitor;
+import org.glassfish.jersey.server.model.HandlerConstructor;
+import org.glassfish.jersey.server.model.Invocable;
+import org.glassfish.jersey.server.model.MethodHandler;
 import org.glassfish.jersey.server.model.Resource;
 import org.glassfish.jersey.server.model.ResourceMethod;
+import org.glassfish.jersey.server.model.ResourceModel;
+import org.glassfish.jersey.server.model.ResourceModelVisitor;
+import org.glassfish.jersey.server.model.RuntimeResource;
 import org.glassfish.jersey.server.monitoring.ApplicationEvent;
 import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
@@ -36,6 +43,9 @@ public class TraceApplicationEventListener implements ApplicationEventListener {
     @Override
     public void onEvent(ApplicationEvent event) {
         if (event.getType() == ApplicationEvent.Type.INITIALIZATION_APP_FINISHED) {
+
+            event.getResourceModel().accept(new TraceResourceVisitor());
+
             for (Resource resource : event.getResourceModel().getResources()) {
                 for (ResourceMethod method : resource.getAllMethods()) {
                     registerSpanAnnotations(method);
@@ -83,8 +93,9 @@ public class TraceApplicationEventListener implements ApplicationEventListener {
         @Override
         public void onEvent(RequestEvent event) {
             if (event.getType() == RequestEvent.Type.RESOURCE_METHOD_START) {
-                final Method method = event.getUriInfo()
-                        .getMatchedResourceMethod().getInvocable().getDefinitionMethod();
+                final Invocable invocable = event.getUriInfo()
+                        .getMatchedResourceMethod().getInvocable();
+                final Method method = invocable.getDefinitionMethod();
                 Span span = methodMap.get(method);
                 if (span != null) {
 
@@ -116,4 +127,46 @@ public class TraceApplicationEventListener implements ApplicationEventListener {
 
     }
 
+    private class TraceResourceVisitor extends AbstractResourceModelVisitor {
+
+        @Override
+        public void visitResource(Resource resource) {
+            LOGGER.debug(resource.getName());
+        }
+
+        @Override
+        public void visitChildResource(Resource resource) {
+            LOGGER.debug(resource.getName());
+        }
+
+        @Override
+        public void visitResourceMethod(ResourceMethod method) {
+            LOGGER.debug(method.toString());
+        }
+
+        @Override
+        public void visitInvocable(Invocable invocable) {
+
+        }
+
+        @Override
+        public void visitMethodHandler(MethodHandler methodHandler) {
+
+        }
+
+        @Override
+        public void visitResourceHandlerConstructor(HandlerConstructor constructor) {
+
+        }
+
+        @Override
+        public void visitResourceModel(ResourceModel resourceModel) {
+
+        }
+
+        @Override
+        public void visitRuntimeResource(RuntimeResource runtimeResource) {
+
+        }
+    }
 }

@@ -15,7 +15,7 @@ public class TraceInterceptorBinder extends AbstractBinder {
 
     private final TraceService traceService;
 
-    TraceInterceptorBinder(TraceService traceService) {
+    public TraceInterceptorBinder(TraceService traceService) {
         this.traceService = traceService;
     }
 
@@ -25,7 +25,7 @@ public class TraceInterceptorBinder extends AbstractBinder {
         bind(this.traceService.getTracer()).to(Tracer.class);
         bind(TraceInterceptionService.class)
                 .to(InterceptionService.class).in(Singleton.class);
-        bind(TraceApplicationEventListener.class)
-                .to(ApplicationEventListener.class).in(Singleton.class);
+//        bind(TraceApplicationEventListener.class)
+//                .to(ApplicationEventListener.class).in(Singleton.class);
     }
 }

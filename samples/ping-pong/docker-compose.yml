@@ -1,0 +1,24 @@
+version: '2'
+services:
+  peopleApi:
+    build:
+      context: .
+      args:
+          environment: local
+    image: gcr.io/sc-core-prd/deskdrop/people-api:latest
+    container_name: peopleApi
+    ports:
+     - "8080:8080"
+     - "8081:8081"
+     - "5005:5005"
+    volumes:
+     - ./build/installShadow/people-rest:/opt/deskdrop/people-api/
+     - ./config/config-local.yml:/opt/deskdrop/people-api/config.yml
+     - ~/.config/gcloud:/root/.config/gcloud
+    environment:
+#     - DATASTORE_EMULATOR_HOST=http://datastore:8283
+#     - DATASTORE_EMULATOR_HOST_PATH=http://datastore:8283/datastore
+     - DATASTORE_PROJECT_ID=sc-core-prd
+     - DATASTORE_DATASET=sc-core-prd
+     - JAVA_OPTS=-Xms256M -Xmx256M -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+

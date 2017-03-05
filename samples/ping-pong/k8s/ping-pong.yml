@@ -1,0 +1,65 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: people-api-deployment
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        name: people-api
+        app: deskdrop
+        tier: backend
+    spec:
+      containers:
+      - image: gcr.io/sc-core-prd/deskdrop/people-api:68f1326
+        name: people-api
+        env:
+          - name: JAVA_OPTS
+            value: "-Xms256m -Xmx256m"
+        ports:
+        - name: application
+          containerPort: 8080
+        - name: admin
+          containerPort: 8081
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8081
+          initialDelaySeconds: 15
+          timeoutSeconds: 2
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          periodSeconds: 1
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 10
+#        resources:
+#            limits:
+#                cpu: 1
+#                memory: 1Gi
+#            requests:
+#                cpu: 500m
+#                memory: 1Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: people-api-service
+  labels:
+    name: people-api
+    app: deskdrop
+    tier: backend
+spec:
+  type: NodePort
+  ports:
+   - port: 80
+     targetPort: 8080
+     protocol: TCP
+     name: api
+  selector:
+    name: people-api

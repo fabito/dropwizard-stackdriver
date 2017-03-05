@@ -2,11 +2,20 @@ logging:
   level: INFO
   loggers:
     io.github.fabito: DEBUG
+    org.apache.http.headers: DEBUG
   appenders:
   - type: console
     timeZone: UTC
     target: stdout
 
 trace:
+  projectId: gae-skeletons
+  urlPatterns:
+  - "/*"
 
 httpClient:
+  timeout: 5000ms
+  connectionTimeout: 5000ms
+  retries: 3
+
+

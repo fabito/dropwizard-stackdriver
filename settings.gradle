@@ -5,4 +5,5 @@ include 'dropwizard-stackdriver-trace'
 include 'dropwizard-gke-metrics'
 include 'samples:trace'
 include 'samples:metrics'
+include 'samples:ping-pong'
 

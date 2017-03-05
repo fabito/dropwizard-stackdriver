@@ -10,6 +10,7 @@ import io.github.fabito.dropwizard.samples.resources.PingResource;
 import io.github.fabito.dropwizard.tracing.SpanAwareProxyFactory;
 import io.github.fabito.dropwizard.tracing.TraceBundle;
 import io.github.fabito.dropwizard.tracing.TraceConfiguration;
+import org.apache.http.client.HttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +46,15 @@ public class SampleApplication extends Application<SampleConfiguration> {
     @Override
     public void run(final SampleConfiguration configuration,
                     final Environment environment) throws IOException {
+
+        final HttpClient httpClient = traceBundle.httpClientBuilder(environment)
+                .using(configuration.getHttpClientConfiguration())
+                .build("echo-http-client");
+
         SpanAwareProxyFactory factory = new SpanAwareProxyFactory(traceBundle);
         EchoService echoService = factory.create(EchoService.class);
+        LOGGER.info("Registering resources");
         environment.jersey().register(PingResource.class);
-        environment.jersey().register(new EchoResource(echoService));
+        environment.jersey().register(new EchoResource(new EchoService(), httpClient));
     }
 }

@@ -6,7 +6,7 @@ import com.google.cloud.trace.core.SpanContextFactory;
 import com.google.cloud.trace.http.TraceHttpRequestInterceptor;
 import com.google.cloud.trace.http.TraceHttpResponseInterceptor;
 import com.google.cloud.trace.jaxrs.TraceContainerFilter;
-import com.google.cloud.trace.jaxrs.TraceContainerFilter2;
+import com.google.cloud.trace.jaxrs.TraceMessageBodyInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,20 +28,23 @@ public class TracingFeature implements DynamicFeature {
 
     public TracingFeature(TraceHttpRequestInterceptor requestInterceptor,
                           TraceHttpResponseInterceptor responseInterceptor) {
+
         traceContainerFilter = new TraceContainerFilter(requestInterceptor, responseInterceptor);
     }
 
     @Override
     public void configure(ResourceInfo resourceInfo, FeatureContext context) {
-        final Method method = resourceInfo.getResourceMethod();
-        if (resourceInfo.getResourceMethod().isAnnotationPresent(Span.class)) {
-            LOGGER.info(resourceInfo.getResourceClass().getSimpleName() + "." + method.getName());
-            Span span = method.getAnnotation(Span.class);
-            context.register(traceContainerFilter);
-        } else {
-            if (traceAll) {
-                context.register(traceContainerFilter);
-            }
-        }
+//        final Method method = resourceInfo.getResourceMethod();
+//        if (resourceInfo.getResourceMethod().isAnnotationPresent(Span.class)) {
+//            LOGGER.info(resourceInfo.getResourceClass().getSimpleName() + "." + method.getName());
+//            Span span = method.getAnnotation(Span.class);
+//            context.register(traceContainerFilter);
+//        } else {
+//            if (traceAll) {
+//                context.register(traceContainerFilter);
+//            }
+//        }
+        context.register(traceContainerFilter);
+//        context.register(new TraceMessageBodyInterceptor());
     }
 }

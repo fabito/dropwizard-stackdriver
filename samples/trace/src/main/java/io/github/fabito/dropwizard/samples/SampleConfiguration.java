@@ -13,7 +13,7 @@ public class SampleConfiguration extends Configuration {
 
     private HttpClientConfiguration httpClient = new HttpClientConfiguration();
 
-    private TraceConfiguration traceConfiguration;
+    private TraceConfiguration traceConfiguration = new TraceConfiguration();
 
     @JsonProperty("httpClient")
     public HttpClientConfiguration getHttpClientConfiguration() {
