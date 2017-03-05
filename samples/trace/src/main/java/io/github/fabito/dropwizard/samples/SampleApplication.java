@@ -7,7 +7,6 @@ import io.dropwizard.setup.Environment;
 import io.github.fabito.dropwizard.samples.resources.EchoResource;
 import io.github.fabito.dropwizard.samples.resources.EchoService;
 import io.github.fabito.dropwizard.samples.resources.PingResource;
-import io.github.fabito.dropwizard.tracing.SpanAwareProxyFactory;
 import io.github.fabito.dropwizard.tracing.TraceBundle;
 import io.github.fabito.dropwizard.tracing.TraceConfiguration;
 import org.apache.http.client.HttpClient;
@@ -51,8 +50,6 @@ public class SampleApplication extends Application<SampleConfiguration> {
                 .using(configuration.getHttpClientConfiguration())
                 .build("echo-http-client");
 
-        SpanAwareProxyFactory factory = new SpanAwareProxyFactory(traceBundle);
-        EchoService echoService = factory.create(EchoService.class);
         LOGGER.info("Registering resources");
         environment.jersey().register(PingResource.class);
         environment.jersey().register(new EchoResource(new EchoService(), httpClient));

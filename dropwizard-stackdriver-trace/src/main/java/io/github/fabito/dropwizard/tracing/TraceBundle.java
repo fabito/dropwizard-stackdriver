@@ -1,10 +1,7 @@
 package io.github.fabito.dropwizard.tracing;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.cloud.trace.SpanContextHandler;
 import com.google.cloud.trace.Tracer;
-import com.google.cloud.trace.apachehttp.TraceRequestInterceptor;
-import com.google.cloud.trace.apachehttp.TraceResponseInterceptor;
 import com.google.cloud.trace.core.SpanContextFactory;
 import com.google.cloud.trace.http.TraceHttpRequestInterceptor;
 import com.google.cloud.trace.http.TraceHttpResponseInterceptor;
@@ -22,7 +19,24 @@ import javax.servlet.FilterRegistration;
 import java.util.EnumSet;
 
 /**
- * Created by fabio on 15/12/16.
+ * Adds <a href="https://cloud.google.com/trace/">Stackdriver Trace</a> tracing capabilities to an application.
+ *
+ * <code>
+ *    private final TraceBundle<SampleConfiguration> traceBundle =
+ *      new TraceBundle<SampleConfiguration>() {
+ *         @Override
+ *         public TraceConfiguration getTraceConfiguration(SampleConfiguration configuration) {
+ *             return configuration.getTraceConfiguration();
+ *      }
+ *    };
+ *
+ *    @Override
+ *    public void initialize(final Bootstrap<SampleConfiguration> bootstrap) {
+ *      bootstrap.addBundle(traceBundle);
+ *    }
+ * </code>
+ *
+ * @author Fábio Franco Uechi
  */
 public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
 
@@ -32,35 +46,31 @@ public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
     private TraceHttpRequestInterceptor traceHttpRequestInterceptor;
     private TraceHttpResponseInterceptor traceHttpResponseInterceptor;
 
+    public abstract TraceConfiguration getTraceConfiguration(T configuration);
+
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
     }
 
     @Override
     public void run(T configuration, Environment environment) throws Exception {
-        LOGGER.debug("Start bundle");
+        LOGGER.debug("Setting up Stackdriver tracing infrastructure");
         TraceConfiguration traceConfiguration = getTraceConfiguration(configuration);
         traceService = traceConfiguration.traceService(environment);
 
         final SpanContextHandler spanContextHandler = traceService.getSpanContextHandler();
         final SpanContextFactory spanContextFactory = traceService.getSpanContextFactory();
+        LOGGER.debug("Creating request and response interceptors");
         traceHttpRequestInterceptor = new TraceHttpRequestInterceptor(traceService.getTracer());
         traceHttpResponseInterceptor = new TraceHttpResponseInterceptor(traceService.getTracer());
 
+        final String[] urlPatterns = traceConfiguration.getUrlPatterns();
+        LOGGER.debug("Registering tracing filter using patterns: {}", urlPatterns);
         final FilterRegistration.Dynamic tracingFilter = environment.servlets().addFilter("tracing-filter", new TraceServletFilter(spanContextHandler, spanContextFactory, traceHttpRequestInterceptor, traceHttpResponseInterceptor));
-        tracingFilter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, traceConfiguration.getUrlPatterns());
+        tracingFilter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, urlPatterns);
 
-        environment.jersey().register(new TracingFeature(traceHttpRequestInterceptor, traceHttpResponseInterceptor));
-
-//        final TraceInterceptorBinder traceInterceptorBinder = new TraceInterceptorBinder(traceService);
-//        environment.jersey().register(traceInterceptorBinder);
-
-//        environment.jersey().register(new TraceApplicationEventListener(traceService));
-
-        LOGGER.debug("End bundle");
+        LOGGER.debug("Stackdriver tracing up and running");
     }
-
-    public abstract TraceConfiguration getTraceConfiguration(T configuration);
 
     public Tracer getTracer() {
         return traceService.getTracer();
@@ -72,32 +82,6 @@ public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
 
     public TraceService getTraceService() {
         return traceService;
-    }
-
-    public static class TracedHttpClientBuilder extends HttpClientBuilder {
-
-        private final TraceHttpRequestInterceptor traceHttpRequestInterceptor;
-        private final TraceHttpResponseInterceptor traceHttpResponseInterceptor;
-
-        public TracedHttpClientBuilder(MetricRegistry metricRegistry, TraceHttpRequestInterceptor traceHttpRequestInterceptor, TraceHttpResponseInterceptor traceHttpResponseInterceptor) {
-            super(metricRegistry);
-            this.traceHttpRequestInterceptor = traceHttpRequestInterceptor;
-            this.traceHttpResponseInterceptor = traceHttpResponseInterceptor;
-        }
-
-        public TracedHttpClientBuilder(Environment environment, TraceHttpRequestInterceptor traceHttpRequestInterceptor,
-                TraceHttpResponseInterceptor traceHttpResponseInterceptor) {
-            super(environment);
-            this.traceHttpRequestInterceptor = traceHttpRequestInterceptor;
-            this.traceHttpResponseInterceptor = traceHttpResponseInterceptor;
-        }
-
-        @Override
-        protected org.apache.http.impl.client.HttpClientBuilder customizeBuilder(org.apache.http.impl.client.HttpClientBuilder builder) {
-            builder.addInterceptorFirst(new TraceRequestInterceptor(traceHttpRequestInterceptor));
-            builder.addInterceptorLast(new TraceResponseInterceptor(traceHttpResponseInterceptor));
-            return builder;
-        }
     }
 
 }
