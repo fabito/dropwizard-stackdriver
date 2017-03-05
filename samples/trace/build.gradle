@@ -32,6 +32,9 @@ dependencies {
     compile "io.dropwizard:dropwizard-client:${dropwizardVersion}"
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8', version: '0.9.0-1'
 
+    compile group: 'com.google.cloud.trace', name: 'annotation', version: cloudTrace
+    compile group: 'com.google.cloud.trace', name:'guice-annotation', version: cloudTrace
+
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: dropwizardVersion
 }

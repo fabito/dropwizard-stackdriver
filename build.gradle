@@ -25,6 +25,8 @@ subprojects {
 
     project.ext {
         dropwizardVersion = '1.1.0-rc1'
+        cloudTrace = '0.3.1'
+        cloudTraceInstrumentation = '0.1.0'
     }
 }
 
@@ -71,5 +73,5 @@ subprojects {
 //}
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.2.1'
+    gradleVersion = '3.4.1'
 }

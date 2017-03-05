@@ -16,6 +16,40 @@ import java.io.IOException;
 /**
  * The configuration class used by {@link TraceGrpcApiService.Builder} to build a {@link TraceService}.
  *
+ * <b>Configuration Parameters:</b>
+ * <table>
+ *     <tr>
+ *         <td>Name</td>
+ *         <td>Default</td>
+ *         <td>Description</td>
+ *     </tr>
+ *     <tr>
+ *         <td>projectId</td>
+ *         <td></td>
+ *         <td>(Required) The Google Cloud Platform project id.</td>
+ *     </tr>
+ *     <tr>
+ *         <td>bufferSize</td>
+ *         <td>32 * 1024</td>
+ *         <td>(Optional) </td>
+ *     </tr>
+ *     <tr>
+ *         <td>numThreads</td>
+ *         <td>1</td>
+ *         <td>(Optional)</td>
+ *     </tr>
+ *     <tr>
+ *         <td>scheduledDelay</td>
+ *         <td>15</td>
+ *         <td>(Optional)</td>
+ *     </tr>
+ *     <tr>
+ *         <td>urlPatterns</td>
+ *         <td>/*</td>
+ *         <td>(Optional) Which endpoints will be traced. Defaults to all.</td>
+ *     </tr>
+ * </table>
+ *
  * @author Fábio Franco Uechi
  */
 public class TraceConfiguration {

@@ -1,6 +1,5 @@
 package io.github.fabito.dropwizard.tracing;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.cloud.trace.apachehttp.TraceRequestInterceptor;
 import com.google.cloud.trace.apachehttp.TraceResponseInterceptor;
 import com.google.cloud.trace.http.TraceHttpRequestInterceptor;
@@ -17,12 +16,6 @@ public class TracedHttpClientBuilder extends HttpClientBuilder {
 
     private final TraceHttpRequestInterceptor traceHttpRequestInterceptor;
     private final TraceHttpResponseInterceptor traceHttpResponseInterceptor;
-
-    public TracedHttpClientBuilder(MetricRegistry metricRegistry, TraceHttpRequestInterceptor traceHttpRequestInterceptor, TraceHttpResponseInterceptor traceHttpResponseInterceptor) {
-        super(metricRegistry);
-        this.traceHttpRequestInterceptor = traceHttpRequestInterceptor;
-        this.traceHttpResponseInterceptor = traceHttpResponseInterceptor;
-    }
 
     public TracedHttpClientBuilder(Environment environment, TraceHttpRequestInterceptor traceHttpRequestInterceptor,
                                    TraceHttpResponseInterceptor traceHttpResponseInterceptor) {

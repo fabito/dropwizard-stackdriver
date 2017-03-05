@@ -65,7 +65,7 @@ public abstract class TraceBundle<T> implements ConfiguredBundle<T> {
         traceHttpResponseInterceptor = new TraceHttpResponseInterceptor(traceService.getTracer());
 
         final String[] urlPatterns = traceConfiguration.getUrlPatterns();
-        LOGGER.debug("Registering tracing filter using patterns: {}", urlPatterns);
+        LOGGER.debug("Registering tracing filter using patterns: {}", (Object[]) urlPatterns);
         final FilterRegistration.Dynamic tracingFilter = environment.servlets().addFilter("tracing-filter", new TraceServletFilter(spanContextHandler, spanContextFactory, traceHttpRequestInterceptor, traceHttpResponseInterceptor));
         tracingFilter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, urlPatterns);
 
