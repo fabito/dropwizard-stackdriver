@@ -1,9 +1,8 @@
-rootProject.name = 'dropwizard-gcp'
+rootProject.name = 'dropwizard-stackdriver'
 
-include 'dropwizard-gke-logging'
+include 'dropwizard-stackdriver-logging'
 include 'dropwizard-stackdriver-trace'
-include 'dropwizard-gke-metrics'
+include 'dropwizard-stackdriver-monitoring'
 include 'samples:trace'
 include 'samples:metrics'
-include 'samples:ping-pong'
-
+//include 'samples:ping-pong'

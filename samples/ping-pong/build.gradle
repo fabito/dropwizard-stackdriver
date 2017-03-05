@@ -14,9 +14,9 @@ project.ext {
 }
 
 dependencies {
-    compile project(':dropwizard-gke-metrics')
-    compile project(':dropwizard-gke-logging')
-    compile project(':dropwizard-stackdriver-trace')
+    compile project(':monitoring')
+    compile project(':logging')
+    compile project(':trace')
     compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
     compile "io.dropwizard:dropwizard-core:${dropwizardVersion}"
     compile "io.dropwizard:dropwizard-client:${dropwizardVersion}"
