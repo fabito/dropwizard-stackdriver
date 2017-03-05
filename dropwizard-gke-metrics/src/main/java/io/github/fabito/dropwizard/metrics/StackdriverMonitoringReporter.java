@@ -9,7 +9,6 @@ import com.google.api.client.util.DateTime;
 import com.google.api.services.monitoring.v3.Monitoring;
 import com.google.api.services.monitoring.v3.model.*;
 import com.google.api.services.monitoring.v3.model.Metric;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;

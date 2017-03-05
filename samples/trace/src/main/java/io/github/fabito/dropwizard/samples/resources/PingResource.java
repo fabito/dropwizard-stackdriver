@@ -1,6 +1,7 @@
 package io.github.fabito.dropwizard.samples.resources;
 
 import com.google.cloud.trace.Tracer;
+import com.google.cloud.trace.annotation.Span;
 import com.google.cloud.trace.core.Labels;
 import com.google.cloud.trace.core.TraceContext;
 
@@ -24,6 +25,7 @@ public class PingResource {
 
     @GET
     @Path("/ping")
+    @Span
     public Response get() throws InterruptedException {
         TraceContext traceContext = tracer.startSpan("ping");
         final long sleepTime = (long) (Math.random() * 5000);

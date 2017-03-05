@@ -1,0 +1,36 @@
+server:
+  applicationConnectors:
+  - type: http
+    port: 8080
+  adminConnectors:
+  - type: http
+    port: 8081
+  requestLog:
+    appenders: []
+
+logging:
+  level: INFO
+  loggers:
+    io.github.fabito: DEBUG
+  appenders:
+  - type: GKEConsole
+    timeZone: UTC
+    target: stdout
+
+httpClient:
+  timeout: 500ms
+  connectionTimeout: 500ms
+  retries: 3
+#  userAgent: <application name> (<client name>)
+
+#metrics:
+#  frequency: 1 minute
+#  reporters:
+#    - type: stackdriver-reporter
+#      projectId: sc-core-dev
+#      durationUnit: milliseconds
+#      rateUnit: seconds
+#      frequency: 1 minute
+#      excludes: (none)
+#      includes: (all)
+#      useRegexFilters: false
