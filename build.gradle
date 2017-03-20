@@ -3,6 +3,8 @@ buildscript {
         jcenter()
     }
     dependencies {
+        // due https://github.com/johnrengelman/shadow/issues/188
+        classpath 'org.apache.ant:ant:1.9.9'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     }
 }

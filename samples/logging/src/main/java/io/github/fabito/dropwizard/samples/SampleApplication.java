@@ -19,7 +19,7 @@ public class SampleApplication extends Application<SampleConfiguration> {
 
     @Override
     public String getName() {
-        return "Logging";
+        return "Dropwizard Stackdriver Logging Sample App";
     }
 
     @Override

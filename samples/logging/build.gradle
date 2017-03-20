@@ -3,7 +3,13 @@ apply plugin: 'application'
 
 buildscript {
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
+    }
+}
+
+repositories {
+    maven {
+        url  "http://dl.bintray.com/fabito/maven"
     }
 }
 
@@ -13,11 +19,15 @@ project.ext {
     configPath = "$projectDir/"
 }
 
+configurations {
+    all*.exclude group: 'com.google.guava', module: 'guava-jdk5'
+}
+
 dependencies {
-    compile project(':logging')
     compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
     compile "io.dropwizard:dropwizard-core:${dropwizardVersion}"
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8', version: '0.9.0-1'
+    compile group: 'io.github.fabito.dropwizard', name: 'dropwizard-stackdriver-logging', version: '0.1.0'
 }
 
 mainClassName = "io.github.fabito.dropwizard.samples.SampleApplication"
