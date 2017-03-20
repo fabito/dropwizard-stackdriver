@@ -3,11 +3,7 @@ logging:
   loggers:
     io.github.fabito: TRACE
   appenders:
-  - type: GKEConsole
-    threshold: ALL
-    timeZone: UTC
-    target: stdout
-  - type: console
+  - type: ${LOG_APPENDER_TYPE:-console}
     threshold: ALL
     timeZone: UTC
     target: stdout
