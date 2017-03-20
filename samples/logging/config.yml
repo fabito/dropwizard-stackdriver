@@ -1,8 +1,9 @@
 logging:
   level: INFO
   loggers:
-    io.github.fabito: DEBUG
+    io.github.fabito: TRACE
   appenders:
-  - type: GKEConsole
+  - type: ${LOG_APPENDER_TYPE:-console}
+    threshold: ALL
     timeZone: UTC
     target: stdout

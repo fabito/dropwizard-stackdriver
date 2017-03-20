@@ -2,6 +2,8 @@ package io.github.fabito.dropwizard.samples;
 
 import com.codahale.metrics.servlets.PingServlet;
 import io.dropwizard.Application;
+import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
+import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.java8.Java8Bundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -19,11 +21,17 @@ public class SampleApplication extends Application<SampleConfiguration> {
 
     @Override
     public String getName() {
-        return "Logging";
+        return "Dropwizard Stackdriver Logging Sample App";
     }
 
     @Override
     public void initialize(final Bootstrap<SampleConfiguration> bootstrap) {
+
+        bootstrap.setConfigurationSourceProvider(
+                new SubstitutingSourceProvider(
+                        bootstrap.getConfigurationSourceProvider(),
+                        new EnvironmentVariableSubstitutor(false))
+        );
         bootstrap.addBundle(new Java8Bundle());
     }
 

@@ -1,15 +1,27 @@
-//plugins {
-//    id "com.jfrog.bintray" version "1.7.3"
-//}
-
-apply plugin: 'idea'
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        // due https://github.com/johnrengelman/shadow/issues/188
+        classpath 'org.apache.ant:ant:1.9.9'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+    }
+}
 
 allprojects {
+    apply plugin: 'idea'
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'com.jfrog.bintray'
+
     group = 'io.github.fabito.dropwizard'
-    version = '0.1'
+    version = '0.1.0'
 }
 
 subprojects {
+
+    sourceCompatibility = 1.8
 
     buildscript {
         repositories {
@@ -20,7 +32,12 @@ subprojects {
     repositories {
         mavenCentral()
         jcenter()
-//        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    }
+
+    dependencies {
+        testCompile group: 'junit', name: 'junit', version: '4.11'
+        testCompile group: 'org.mockito', name: 'mockito-core', version: '2.3.10'
+        testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
     }
 
     project.ext {
@@ -28,49 +45,32 @@ subprojects {
         cloudTrace = '0.3.1'
         cloudTraceInstrumentation = '0.1.0'
     }
+
+    bintray {
+        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+        configurations = ['archives']
+
+        pkg {
+            userOrg = 'fabito'
+            repo = 'maven'
+            name = 'dropwizard-stackdriver'
+            licenses = ['MIT']
+            vcsUrl = 'https://github.com/fabito/dropwizard-stackdriver.git'
+            dryRun = false
+
+            version {
+                name = '0.1.0'
+                desc = 'Dropwizard utilities for Stackdriver'
+                released  = new Date()
+                vcsTag = '0.1.0'
+            }
+
+        }
+    }
+
 }
-
-//publishing {
-//    publications {
-//        MyPublication(MavenPublication) {
-//            from components.java
-//            artifact sourcesJar
-//            artifact javadocJar
-//            groupId allprojects.group
-//            artifactId 'gradle-project'
-//            version '1.1'
-//            pom.withXml {
-//                def root = asNode()
-//                root.appendNode('description', 'Your description of the lib')
-//                root.appendNode('name', 'Your name of the lib')
-//                root.appendNode('url', 'https://github.com/fabito/dropwizard-gcp')
-//                root.children().last() + pomConfig
-//            }
-//        }
-//    }
-//}
-
-//bintray {
-//    user = System.getenv('BINTRAY_USER')
-//    key = System.getenv('BINTRAY_KEY')
-//    publications = ['MyPublication']
-//    configurations = ['archives']
-//
-//    pkg {
-//        repo = 'generic'
-//        name = 'gradle-project'
-//        licenses = ['MIT']
-//        vcsUrl = 'https://github.com/fabito/dropwizard-gcp.git'
-//
-//        version {
-//            name = '1.0-Final'
-//            desc = 'Gradle Bintray Plugin 1.0 final'
-//            released  = new Date()
-//            vcsTag = '1.3.0'
-//        }
-//
-//    }
-//}
 
 task wrapper(type: Wrapper) {
     gradleVersion = '3.4.1'

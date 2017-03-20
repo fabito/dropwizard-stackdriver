@@ -1,4 +1,4 @@
-# dropwizard-gcp
+# dropwizard-stackdriver
 
 [![Build Status][travis-image]][travis-url] 
 
@@ -8,5 +8,5 @@ Dropwizard libraries for applications running on Google Cloud Platform
 * tracing
 * metrics
 
-[travis-image]: https://travis-ci.org/fabito/dropwizard-gcp.svg?branch=master
-[travis-url]: https://travis-ci.org/fabito/dropwizard-gcp
+[travis-image]: https://travis-ci.org/fabito/dropwizard-stackdriver.svg?branch=master
+[travis-url]: https://travis-ci.org/fabito/dropwizard-stackdriver
