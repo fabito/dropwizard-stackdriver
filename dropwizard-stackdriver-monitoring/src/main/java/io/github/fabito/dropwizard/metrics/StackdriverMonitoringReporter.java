@@ -167,7 +167,7 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
 
             for (Map.Entry<String, Meter> entry : meters.entrySet()) {
                 final List<TimeSeries> meterTimeSeries = reportMetered(entry.getKey(), entry.getValue(), now);
-                if (timeSeriesList != null) {
+                if (meterTimeSeries != null) {
                     timeSeriesList.addAll(meterTimeSeries);
                 }
             }
