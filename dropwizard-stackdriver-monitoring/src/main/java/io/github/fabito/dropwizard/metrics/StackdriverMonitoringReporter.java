@@ -352,7 +352,7 @@ public class StackdriverMonitoringReporter extends ScheduledReporter {
                 final Matcher matcher = pattern.matcher(e.getMessage());
                 if (matcher.find(1)) {
                     try {
-                        int index = Integer.valueOf(matcher.group(1));
+                        int index = Integer.parseInt(matcher.group(1));
 
                         if (index > 0) {
                             final TimeSeries timeSeriesBefore = batchItems.get(index-1);
