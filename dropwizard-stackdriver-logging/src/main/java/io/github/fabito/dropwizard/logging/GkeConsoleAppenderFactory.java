@@ -1,5 +1,6 @@
 package io.github.fabito.dropwizard.logging;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.contrib.jackson.JacksonJsonFormatter;
@@ -39,7 +40,7 @@ public class GkeConsoleAppenderFactory<E extends DeferredProcessingAware> extend
         layoutEncoder.setLayout((Layout<E>) jsonLayout);
 
         appender.setEncoder(layoutEncoder);
-        appender.addFilter(levelFilterFactory.build(getThreshold()));
+        appender.addFilter(levelFilterFactory.build(Level.toLevel(getThreshold())));
 
         getFilterFactories().stream().forEach(f -> appender.addFilter(f.build()));
 

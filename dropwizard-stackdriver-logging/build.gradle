@@ -5,6 +5,7 @@ jar {
 
 dependencies {
     compile "io.dropwizard:dropwizard-logging:${dropwizardVersion}"
+    compile 'com.google.cloud:google-cloud-logging-logback:0.114.0-alpha'
     compile group: 'ch.qos.logback.contrib', name: 'logback-json-classic', version: '0.1.5'
     compile group: 'ch.qos.logback.contrib', name: 'logback-jackson', version: '0.1.5'
 }

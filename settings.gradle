@@ -4,8 +4,7 @@ include 'dropwizard-stackdriver-logging'
 include 'dropwizard-stackdriver-trace'
 include 'dropwizard-stackdriver-monitoring'
 
-include 'samples:logging'
-
+//include 'samples:logging'
 //include 'samples:trace'
 //include 'samples:metrics'
 //include 'samples:ping-pong'
