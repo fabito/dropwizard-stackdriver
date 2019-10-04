@@ -1,1 +1,2 @@
 io.github.fabito.dropwizard.logging.GkeConsoleAppenderFactory
+io.github.fabito.dropwizard.logging.GkeAppenderFactory
